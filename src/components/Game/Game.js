@@ -9,18 +9,22 @@ import {
 import { colors, CLEAR, ENTER, colorsToEmoji } from "../../constants";
 import Keyboard from "../Keyboard";
 import styles from "./Game.styles"
-import {copyArray, getDayOfTheYear} from "../../utils"
+import {copyArray, getDayOfTheYear, getDayKey} from "../../utils"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import EndScreen from "../EndScreen";
+import Animated, {FlipInEasyX, FlipInEasyY, SlideInDown, SlideInLeft } from "react-native-reanimated";
+import words from "../../words";
 
 const NUMBER_OF_TRIES = 6;
 
-const dayOfTheYear = getDayOfTheYear();
+const dayOfTheYear = getDayOfTheYear() ;
+const dayKey = getDayKey();
 
 const Game = () => {
-  const word = "pwerf";
+  //AsyncStorage.removeItem("@game");
+  const word = "hello";
   const letters = word.split(""); // ['h', 'e', 'l', 'l', 'o']
-
+  
   const [rows, setRows] = useState(
     new Array(NUMBER_OF_TRIES).fill(new Array(letters.length).fill(""))
   );
@@ -41,40 +45,57 @@ const Game = () => {
         persistState();
     }
   }, [rows, curRow, curCol, gameState]);
-
-  useEffect(()=> {
+ 
+ 
+  useEffect(() => {
     readState();
-  },[])
+  }, []);
 
   const persistState = async () => {
-    const data = {
+    const dataForToday = {
         rows, 
         curRow,
         curCol,
         gameState
     };
-    try {
+  //   const dataString = JSON.stringify(data);
+  //   await AsyncStorage.setItem("@game", dataString);
+  // };
 
-        const dataString = JSON.stringify(data);
+    try {
+      const existingStateString = await AsyncStorage.getItem("@game");
+      const existingState = existingStateString 
+      ? JSON.parse(existingStateString) 
+      : {};
+      
+      existingState[dayKey] = dataForToday;
+
+        const dataString = JSON.stringify(existingState);
         await AsyncStorage.setItem('@game', dataString)
     } catch (e) {
         console.log("failed to write data to async storage", e)
     }
   };
 
-  const readState = async () => {
-    const dataString = await AsyncStorage.getItem('@game');
+  const readState = async() => {
+    const dataString = await AsyncStorage.getItem("@game");
+    console.log(dataString);
     try {
-        const data = JSON.parse(dataString)
-        setRows(data.rows);
-        setCurCol(data.curCol);
-        setCurRow(data.curRow);
-        setGameState(data.gameState);
-    } catch (e) {
-        console.log("Couldn't parse state")
-    }
-    setLoaded(true);
-  };
+      const data = JSON.parse(dataString);
+      const day = data[dayKey];
+      setRows(day.rows);
+      setCurCol(day.curCol);
+      setCurRow(day.curRow);
+      setGameState(day.gameState);
+      
+  } catch (e) {
+      console.log("Couldn't parse state")
+  }
+
+  setLoaded(true);
+    };
+   
+  
 
   const checkGameState = () => {
     if (checkIfWon() && gameState !== "won") {
@@ -156,6 +177,16 @@ const Game = () => {
   const yellowCaps = getAllLettersWithColor(colors.secondary);
   const greyCaps = getAllLettersWithColor(colors.darkgrey);
 
+  const getCellStyle = (i,j) => {
+   
+      styles.cell,
+      {
+        borderColor: isCellActive(i, j)
+          ? colors.grey
+          : colors.darkgrey,
+        backgroundColor: getCellBGColor(i, j),
+      }
+  }
   if(!loaded) {
     return (<ActivityIndicator/>)
   }
@@ -166,7 +197,7 @@ const Game = () => {
 
   return (
     <>
-      <ScrollView style={styles.map}>
+    <ScrollView style={styles.map}>
         {rows.map((row, i) => (
           <View key={`row-${i}`} style={styles.row}>
             {row.map((letter, j) => (
@@ -188,6 +219,40 @@ const Game = () => {
           </View>
         ))}
       </ScrollView>
+      {/* <ScrollView style={styles.map}>
+        {rows.map((row, i) => (
+          <Animated.View 
+          entering={SlideInLeft.delay(i * 50)}
+          key={`row-${i}`} style={styles.row}>
+            {row.map((letter, j) => (
+              <>
+              {i < curRow && (
+              <Animated.View
+              entering={FlipInEasyX.delay(j * 100)}
+                key={`cell-color-${i}-${j}`}
+                style={getCellStyle(i,j)}
+                >
+                <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
+              </Animated.View>)}
+              {i === curRow && !!letter && (
+              <Animated.View
+              entering={Zoomin}
+                key={`cell-active-${i}-${j}`}
+                style={getCellStyle(i,j)}
+                >
+                <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
+              </Animated.View>)}
+              {!letter === curRow && (<View
+                key={`cell-${i}-${j}`}
+                style={getCellStyle(i,j)}
+                >
+                <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
+              </View>)}
+                </>
+          ))}
+          </Animated.View>
+        ))}
+      </ScrollView> */}
 
       <Keyboard
         onKeyPressed={onKeyPressed}
@@ -200,4 +265,4 @@ const Game = () => {
 }
 
 
-export default Game
+export default Game;
