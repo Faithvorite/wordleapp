@@ -7,6 +7,7 @@ import {
 import { colors } from "./src/constants";
 import Game from "./src/components/Game";
 
+console.reportErrorsAsExceptions = false;
 export default function App() {
 
   return (

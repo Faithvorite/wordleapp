@@ -223,7 +223,8 @@ const Game = () => {
         {rows.map((row, i) => (
           <Animated.View 
           entering={SlideInLeft.delay(i * 50)}
-          key={`row-${i}`} style={styles.row}>
+          key={`row-${i}`}
+          style={styles.row}>
             {row.map((letter, j) => (
               <>
               {i < curRow && (
